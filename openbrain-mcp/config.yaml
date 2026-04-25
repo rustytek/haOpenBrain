@@ -1,0 +1,30 @@
+name: "OpenBrain MCP Server"
+version: "1.0.0"
+slug: "openbrain_mcp"
+description: "MCP server exposing OpenBrain memory tools to AI assistants. Connects to the OpenBrain Database add-on."
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: services
+boot: auto
+hassio_api: true
+hassio_role: default
+ports:
+  8000/tcp: 8000
+options:
+  mcp_access_key: "changeme"
+  litellm_url: "http://192.168.1.100:4000"
+  postgres_host: ""
+  postgres_port: 5432
+  postgres_db: "openbrain"
+  postgres_user: "openbrain"
+  postgres_password: "changeme"
+schema:
+  mcp_access_key: str
+  litellm_url: str
+  postgres_host: str?
+  postgres_port: int
+  postgres_db: str
+  postgres_user: str
+  postgres_password: str

@@ -1,0 +1,20 @@
+name: "OpenBrain Database"
+version: "1.0.0"
+slug: "openbrain_postgres"
+description: "Private PostgreSQL + pgvector for OpenBrain. Port is not exposed to the LAN — internal hassio network only."
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: services
+boot: auto
+map:
+  - data:rw
+options:
+  db_password: "changeme"
+  db_name: "openbrain"
+  db_user: "openbrain"
+schema:
+  db_password: str
+  db_name: str
+  db_user: str
