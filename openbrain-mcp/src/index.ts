@@ -7,10 +7,17 @@ import { Pool } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const LITELLM_URL    = Deno.env.get("LITELLM_URL")!;
+const LITELLM_API_KEY = Deno.env.get("LITELLM_API_KEY") || "";
 const MCP_ACCESS_KEY = Deno.env.get("MCP_ACCESS_KEY")!;
 const PORT           = parseInt(Deno.env.get("PORT") || "8000");
 const EMBED_MODEL    = "nomic-embed-text";
 const CHAT_MODEL     = Deno.env.get("METADATA_MODEL") || "deepseek-r1:8b";
+
+function litellmHeaders(): Record<string, string> {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (LITELLM_API_KEY) h["Authorization"] = `Bearer ${LITELLM_API_KEY}`;
+  return h;
+}
 
 // ── Database pool ─────────────────────────────────────────────────────────────
 
@@ -31,7 +38,7 @@ const pool = new Pool(
 async function getEmbedding(text: string): Promise<number[]> {
   const res = await fetch(`${LITELLM_URL}/embeddings`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: litellmHeaders(),
     body: JSON.stringify({ model: EMBED_MODEL, input: text }),
   });
   if (!res.ok) throw new Error(`Embedding failed: ${res.status} ${res.statusText}`);
@@ -55,7 +62,7 @@ const FALLBACK_META: ThoughtMetadata = {
 async function extractMetadata(text: string): Promise<ThoughtMetadata> {
   const res = await fetch(`${LITELLM_URL}/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: litellmHeaders(),
     body: JSON.stringify({
       model: CHAT_MODEL,
       response_format: { type: "json_object" },
