@@ -8,6 +8,7 @@ import { Pool } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
 
 const LITELLM_URL    = Deno.env.get("LITELLM_URL")!;
 const LITELLM_API_KEY = Deno.env.get("LITELLM_API_KEY") || "";
+const OLLAMA_URL     = Deno.env.get("OLLAMA_URL")!;
 const MCP_ACCESS_KEY = Deno.env.get("MCP_ACCESS_KEY")!;
 const PORT           = parseInt(Deno.env.get("PORT") || "8000");
 const EMBED_MODEL    = "nomic-embed-text";
@@ -36,9 +37,11 @@ const pool = new Pool(
 // ── LiteLLM helpers ───────────────────────────────────────────────────────────
 
 async function getEmbedding(text: string): Promise<number[]> {
-  const res = await fetch(`${LITELLM_URL}/embeddings`, {
+  // Call Ollama directly via its OpenAI-compatible endpoint — LiteLLM is only
+  // used for chat completions (metadata extraction).
+  const res = await fetch(`${OLLAMA_URL}/v1/embeddings`, {
     method: "POST",
-    headers: litellmHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model: EMBED_MODEL, input: text }),
   });
   if (!res.ok) throw new Error(`Embedding failed: ${res.status} ${res.statusText}`);

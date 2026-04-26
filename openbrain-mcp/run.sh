@@ -5,6 +5,7 @@ set -e
 MCP_ACCESS_KEY=$(jq -r  '.mcp_access_key'   /data/options.json)
 LITELLM_URL=$(jq -r     '.litellm_url'      /data/options.json)
 LITELLM_API_KEY=$(jq -r '.litellm_api_key // ""' /data/options.json)
+OLLAMA_URL=$(jq -r      '.ollama_url'       /data/options.json)
 POSTGRES_PORT=$(jq -r   '.postgres_port // 5432' /data/options.json)
 POSTGRES_DB=$(jq -r     '.postgres_db'      /data/options.json)
 POSTGRES_USER=$(jq -r   '.postgres_user'    /data/options.json)
@@ -39,7 +40,7 @@ fi
 
 echo "INFO: Connecting to Postgres at ${POSTGRES_HOST}:${POSTGRES_PORT}"
 
-export MCP_ACCESS_KEY LITELLM_URL LITELLM_API_KEY POSTGRES_HOST POSTGRES_PORT \
+export MCP_ACCESS_KEY LITELLM_URL LITELLM_API_KEY OLLAMA_URL POSTGRES_HOST POSTGRES_PORT \
        POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD
 
 exec deno run --allow-net --allow-env /app/src/index.ts
