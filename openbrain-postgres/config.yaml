@@ -1,5 +1,5 @@
 name: "OpenBrain Database"
-version: "1.0.1"
+version: "1.0.2"
 slug: "openbrain_postgres"
 description: "Private PostgreSQL + pgvector for OpenBrain. Port is not exposed to the LAN — internal hassio network only."
 arch:
