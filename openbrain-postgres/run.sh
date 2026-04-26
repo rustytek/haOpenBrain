@@ -22,7 +22,7 @@ chown -R postgres:postgres "$(dirname "$PGDATA")"
 if [ -d "$PGDATA/global" ]; then
     echo "INFO: Syncing credentials for user '${POSTGRES_USER}'..."
     gosu postgres pg_ctl -D "$PGDATA" -o "-c listen_addresses=''" -w start
-    gosu postgres psql --username=postgres \
+    gosu postgres psql --username="${POSTGRES_USER}" \
         -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${POSTGRES_PASSWORD}';" \
         && echo "INFO: Password synced for '${POSTGRES_USER}'." \
         || echo "WARN: Could not sync — user '${POSTGRES_USER}' may not exist yet (will be created on first init)."
