@@ -1,5 +1,5 @@
 name: "OpenBrain MCP Server"
-version: "1.0.6"
+version: "1.0.8"
 slug: "openbrain_mcp"
 description: "MCP server exposing OpenBrain memory tools to AI assistants. Connects to the OpenBrain Database add-on."
 arch:
@@ -16,7 +16,8 @@ options:
   mcp_access_key: "changeme"
   litellm_url: "http://192.168.1.100:4000"
   litellm_api_key: ""
-  ollama_url: "http://192.168.1.100:11434"
+  embed_model: "nomic-embed-text"
+  chat_model: "deepseek-r1:8b"
   postgres_host: ""
   postgres_port: 5432
   postgres_db: "openbrain"
@@ -26,7 +27,8 @@ schema:
   mcp_access_key: str
   litellm_url: str
   litellm_api_key: str?
-  ollama_url: str
+  embed_model: str
+  chat_model: str
   postgres_host: str?
   postgres_port: int
   postgres_db: str

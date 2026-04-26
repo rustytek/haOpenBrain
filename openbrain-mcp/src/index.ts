@@ -8,11 +8,10 @@ import { Pool } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
 
 const LITELLM_URL    = Deno.env.get("LITELLM_URL")!;
 const LITELLM_API_KEY = Deno.env.get("LITELLM_API_KEY") || "";
-const OLLAMA_URL     = Deno.env.get("OLLAMA_URL")!;
 const MCP_ACCESS_KEY = Deno.env.get("MCP_ACCESS_KEY")!;
 const PORT           = parseInt(Deno.env.get("PORT") || "8000");
-const EMBED_MODEL    = "nomic-embed-text";
-const CHAT_MODEL     = Deno.env.get("METADATA_MODEL") || "deepseek-r1:8b";
+const EMBED_MODEL    = Deno.env.get("EMBED_MODEL") || "nomic-embed-text";
+const CHAT_MODEL     = Deno.env.get("CHAT_MODEL") || "deepseek-r1:8b";
 
 function litellmHeaders(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -37,11 +36,9 @@ const pool = new Pool(
 // ── LiteLLM helpers ───────────────────────────────────────────────────────────
 
 async function getEmbedding(text: string): Promise<number[]> {
-  // Call Ollama directly via its OpenAI-compatible endpoint — LiteLLM is only
-  // used for chat completions (metadata extraction).
-  const res = await fetch(`${OLLAMA_URL}/v1/embeddings`, {
+  const res = await fetch(`${LITELLM_URL}/embeddings`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: litellmHeaders(),
     body: JSON.stringify({ model: EMBED_MODEL, input: text }),
   });
   if (!res.ok) throw new Error(`Embedding failed: ${res.status} ${res.statusText}`);
@@ -357,6 +354,16 @@ app.all("/mcp", async (c) => {
   await server.connect(transport);
   return transport.handleRequest(c);
 });
+
+// Log available LiteLLM models at startup so the user can see what to configure
+fetch(`${LITELLM_URL}/models`, { headers: litellmHeaders() })
+  .then((r) => r.json())
+  .then((d) => {
+    const ids = (d.data as { id: string }[])?.map((m) => m.id).join(", ");
+    console.log(`LiteLLM models available: ${ids || "(none)"}`);
+    console.log(`Using embed_model="${EMBED_MODEL}" chat_model="${CHAT_MODEL}"`);
+  })
+  .catch(() => console.log("WARN: Could not fetch model list from LiteLLM"));
 
 Deno.serve({ port: PORT }, app.fetch);
 console.log(`openBrain MCP listening on :${PORT}`);
