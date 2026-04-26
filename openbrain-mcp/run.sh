@@ -15,9 +15,14 @@ POSTGRES_HOST=""
 if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
     POSTGRES_HOST=$(curl -sf \
         -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-        "http://supervisor/addons" 2>/dev/null | \
-        jq -r '.data.addons[]? | select(.slug | contains("openbrain_postgres")) | .ip_address // empty' \
-        2>/dev/null | head -1)
+        "http://supervisor/addons/openbrain_postgres/info" 2>/dev/null | \
+        jq -r '.data.ip_address // empty' 2>/dev/null)
+    if [ -n "$POSTGRES_HOST" ] && [ "$POSTGRES_HOST" != "null" ]; then
+        echo "INFO: Auto-discovered Postgres IP: ${POSTGRES_HOST}"
+    else
+        echo "WARN: Supervisor auto-discovery returned nothing, falling back to postgres_host option."
+        POSTGRES_HOST=""
+    fi
 fi
 
 # Fall back to the value configured in add-on options
@@ -27,7 +32,7 @@ fi
 
 if [ -z "$POSTGRES_HOST" ]; then
     echo "ERROR: Cannot determine Postgres host." >&2
-    echo "Set the postgres_host option to the IP shown in the OpenBrain Database add-on info panel." >&2
+    echo "Set postgres_host in the MCP add-on config to the IP shown in the OpenBrain Database logs." >&2
     exit 1
 fi
 

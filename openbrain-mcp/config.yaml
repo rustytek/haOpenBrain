@@ -1,5 +1,5 @@
 name: "OpenBrain MCP Server"
-version: "1.0.3"
+version: "1.0.4"
 slug: "openbrain_mcp"
 description: "MCP server exposing OpenBrain memory tools to AI assistants. Connects to the OpenBrain Database add-on."
 arch:
