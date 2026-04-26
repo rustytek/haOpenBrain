@@ -328,13 +328,18 @@ app.all("/mcp", async (c) => {
   const key = c.req.header("x-brain-key") ?? c.req.query("key");
   if (key !== MCP_ACCESS_KEY) return c.text("Unauthorized", 401);
 
+  // Read body eagerly — passing c.req.raw.body (ReadableStream) directly to a
+  // new Request loses the stream in Deno's HTTP server; re-provide as a string.
+  const bodyText = await c.req.text();
+
   // Claude Desktop omits the Accept header that StreamableHTTPTransport requires
   const headers = new Headers(c.req.raw.headers);
   headers.set("Accept", "application/json, text/event-stream");
+
   const patched = new Request(c.req.url, {
     method: c.req.method,
     headers,
-    body: c.req.raw.body,
+    body: bodyText || null,
   });
 
   const transport = new StreamableHTTPTransport();
