@@ -328,23 +328,24 @@ app.all("/mcp", async (c) => {
   const key = c.req.header("x-brain-key") ?? c.req.query("key");
   if (key !== MCP_ACCESS_KEY) return c.text("Unauthorized", 401);
 
-  // Read body eagerly — passing c.req.raw.body (ReadableStream) directly to a
-  // new Request loses the stream in Deno's HTTP server; re-provide as a string.
-  const bodyText = await c.req.text();
-
-  // Claude Desktop omits the Accept header that StreamableHTTPTransport requires
-  const headers = new Headers(c.req.raw.headers);
-  headers.set("Accept", "application/json, text/event-stream");
-
-  const patched = new Request(c.req.url, {
-    method: c.req.method,
-    headers,
-    body: bodyText || null,
-  });
+  // handleRequest expects a Hono Context. For clients (e.g. Claude Desktop)
+  // that omit the Accept header required by StreamableHTTPTransport, patch
+  // c.req.raw with a new Request that includes it.
+  if (!c.req.header("accept")?.includes("text/event-stream")) {
+    const headers = new Headers(c.req.raw.headers);
+    headers.set("Accept", "application/json, text/event-stream");
+    const body = await c.req.text();
+    // deno-lint-ignore no-explicit-any
+    (c.req as any).raw = new Request(c.req.raw.url, {
+      method: c.req.raw.method,
+      headers,
+      body: body || null,
+    });
+  }
 
   const transport = new StreamableHTTPTransport();
   await server.connect(transport);
-  return transport.handleRequest(patched);
+  return transport.handleRequest(c);
 });
 
 Deno.serve({ port: PORT }, app.fetch);
