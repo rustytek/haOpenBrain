@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.rustytek.nvidia-nim-sync</string>
+
+  <!-- Run once at load, then again at 03:00 every day -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <!--
+    EDIT: replace /usr/local/bin/python3 with the output of `which python3`
+    (or your venv interpreter, e.g. ~/nvidia-nim-sync/.venv/bin/python)
+    EDIT: replace the script path with the absolute location of sync.py on this Mac.
+  -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/python3</string>
+    <string>/Users/rusty/Documents/Claude/openBrain/nvidia-nim-sync/sync.py</string>
+  </array>
+
+  <!-- Inherit the login env so LITELLM_BASE_URL etc. are visible if set there -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/rusty</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/rusty/Library/Logs/nvidia-nim-sync/stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/rusty/Library/Logs/nvidia-nim-sync/stderr.log</string>
+
+  <!-- Restart on crash, but back off if it keeps failing -->
+  <key>ThrottleInterval</key>
+  <integer>3600</integer>
+</dict>
+</plist>
