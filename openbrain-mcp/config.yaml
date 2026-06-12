@@ -17,7 +17,7 @@ options:
   litellm_url: "http://192.168.1.100:4000"
   litellm_api_key: ""
   embed_model: "nomic-embed-text"
-  chat_model: "deepseek-r1:8b"
+  chat_model: "qwen3.5-mlx"
   postgres_host: ""
   postgres_port: 5432
   postgres_db: "openbrain"

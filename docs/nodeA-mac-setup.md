@@ -1,6 +1,6 @@
 # Node A — Mac Mini Setup (192.168.0.21)
 
-Josh's M4 Mac Mini. Runs Ollama (local models), LiteLLM (OpenAI-compatible gateway), and the Telegram bot.
+Josh's M4 Mac Mini. Runs local model runtimes behind LiteLLM (OpenAI-compatible gateway), and the Telegram bot.
 
 ---
 
@@ -23,20 +23,19 @@ Key services:
 
 | Service | How it runs | Notes |
 |---------|------------|-------|
-| `ollama` | Manually / on demand | `ollama serve` |
+| Local model runtimes | Manually / on demand | Keep runtime endpoints private to Node A; expose models through LiteLLM |
 | `postgresql@14` | `brew services start postgresql@14` | LiteLLM database backend |
 | `cloudflared` | Tunnel config (separate) | Exposes LiteLLM externally |
 
 ---
 
-## Ollama Models
+## Local Models
 
 ```bash
 ollama pull nomic-embed-text   # embeddings (768-dim) — used by openBrain
-ollama pull deepseek-r1:8b     # reasoning — used by openBrain metadata extraction
+ollama pull qwen3.5:9b-mlx     # MLX chat model served behind LiteLLM as qwen3.5-mlx
 ollama pull llava              # vision — used by Telegram bot photo handler
 ollama pull qwen35-moe         # general chat
-ollama pull qwen3.5:9b
 ollama pull qwen2.5-coder:14b
 ollama pull gemma3:4b
 ollama pull qwen3-vl:8b
@@ -72,12 +71,19 @@ UI_PASSWORD=<admin-password>
 
 ### Config file — `~/litellm-config.yaml`
 
-Full model list (Ollama local + Anthropic + NVIDIA NIM + DeepSeek cloud):
+Full model list (local runtimes + Anthropic + NVIDIA NIM + DeepSeek cloud). openBrain should use LiteLLM aliases only:
 
 ```yaml
 model_list:
 
-  # Ollama: General chat
+  # LiteLLM alias used by openBrain metadata extraction
+  - model_name: qwen3.5-mlx
+    litellm_params:
+      model: ollama_chat/qwen3.5:9b-mlx
+      api_base: http://localhost:11434
+      timeout: 300
+
+  # Ollama-backed aliases exposed only through LiteLLM
   - model_name: qwen35-moe_chat
     litellm_params:
       model: ollama_chat/qwen35-moe:latest
@@ -125,12 +131,6 @@ model_list:
       api_base: http://localhost:11434
       timeout: 180
 
-  # Ollama: Reasoning (used by openBrain metadata extraction)
-  - model_name: deepseek-r1_8b_reasoning
-    litellm_params:
-      model: ollama_chat/deepseek-r1:8b
-      api_base: http://localhost:11434
-      timeout: 300
 
   # Ollama: Fast / lightweight
   - model_name: gemma3_4b_fast
@@ -217,7 +217,7 @@ router_settings:
     - {"gpt-3.5-turbo": ["claude-fallback"]}
     - {"coding": ["claude-fallback"]}
     - {"gpt-4": ["claude-fallback"]}
-    - {"reasoning": ["deepseek-reasoner"]}
+    - {"qwen3.5-mlx": ["deepseek-reasoner"]}
     - {"fast": ["claude-haiku"]}
 
 general_settings:
@@ -412,5 +412,5 @@ LiteLLM is exposed externally via a Cloudflare tunnel. Configured separately via
 
 1. `postgresql@14` — starts automatically via `brew services`
 2. `litellm` — waits for Postgres, then starts (launchd)
-3. `ollama serve` — start manually or add a launchd plist
+3. Local model runtimes - start manually or add launchd plists before relying on LiteLLM aliases
 4. Telegram bot — waits for network, then starts (launchd)

@@ -14,8 +14,8 @@ The implementation is two custom private HAOS add-ons in this repo:
 ## Two-Node Architecture
 
 **Node A â€” Inference & Gateway (Mac M4, 16GB RAM)**
-- **Ollama** runs `deepseek-r1:8b` (or `qwen2.5:14b`) for logic/metadata extraction, and `nomic-embed-text` for local embeddings (768-dim, 8192-token context)
-- **LiteLLM** acts as an OpenAI-compatible gateway, proxying Ollama to Node B so the MCP server can call embeddings/metadata extraction over a standard REST API
+- **LiteLLM** is the only API surface Node B calls. It exposes `qwen3.5-mlx` for logic/metadata extraction and `nomic-embed-text` for local embeddings (768-dim, 8192-token context).
+- Local model runtimes on Node A sit behind LiteLLM; the MCP server should never call Ollama or MLX runtime endpoints directly.
 
 **Node B â€” Storage & MCP Server (Intel NUC running Home Assistant OS / HAOS)**
 - **PostgreSQL + pgvector**: custom private HAOS add-on â€” not the community add-on, to limit data exposure. Postgres port is not exposed to the LAN.

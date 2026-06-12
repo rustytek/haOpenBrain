@@ -4,7 +4,7 @@
 
 | Node | Hardware | Role |
 |------|----------|------|
-| **Node A** | Mac M4 (16 GB RAM) | Ollama (embeddings + LLM) + LiteLLM gateway |
+| **Node A** | Mac M4 (16 GB RAM) | Local model runtimes behind LiteLLM gateway |
 | **Node B** | Intel NUC (HAOS) | PostgreSQL + pgvector + MCP server |
 
 ---
@@ -13,19 +13,19 @@
 
 ### Node A — Mac
 
-**Ollama** must be running with both required models pulled:
+Local model runtimes must be running on Node A, but Node B should only call LiteLLM:
 
 ```bash
 ollama serve
 ollama pull nomic-embed-text   # embeddings (768-dim)
-ollama pull deepseek-r1:8b     # metadata extraction (or qwen2.5:14b)
+ollama pull qwen3.5:9b-mlx     # served through LiteLLM as qwen3.5-mlx
 ```
 
 **LiteLLM** must be running as an OpenAI-compatible gateway:
 
 ```bash
 pip install litellm
-litellm --model ollama/deepseek-r1:8b --port 4000
+litellm --config ~/litellm-config.yaml --port 4000 --host 0.0.0.0
 ```
 
 Verify it's reachable from Node B:
@@ -68,6 +68,9 @@ Add: `https://github.com/rustytek/openBrain`
    |--------|-------|
    | `mcp_access_key` | A secret key you choose (e.g., `my-brain-key-2026`) |
    | `litellm_url` | `http://<NODE_A_IP>:4000` |
+   | `litellm_api_key` | `<your-litellm-master-key>` |
+   | `embed_model` | `nomic-embed-text` |
+   | `chat_model` | `qwen3.5-mlx` |
    | `postgres_host` | Leave blank — auto-discovered via HAOS Supervisor API. Set manually only if auto-discovery fails (use the IP from Step 2). |
    | `postgres_port` | `5432` |
    | `postgres_db` | `openbrain` |
@@ -191,7 +194,7 @@ A Telegram bot lets you capture thoughts from your phone via text, **voice notes
 |-------|-----------|-----------|
 | Text message | Direct | The message text |
 | Voice note (`.ogg`) | Transcribed locally with `faster-whisper` on Node A | Transcript prefixed with `[voice]` |
-| Photo | Described by a vision LLM (`llava` via Ollama) | Description + any visible text, prefixed with `[photo]` |
+| Photo | Described by the configured LiteLLM vision alias | Description + any visible text, prefixed with `[photo]` |
 | Document (PDF / DOCX / TXT / MD) | Text extracted locally | Full document text, chunked automatically by the MCP server |
 
 ---

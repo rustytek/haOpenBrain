@@ -11,7 +11,7 @@ const LITELLM_API_KEY = Deno.env.get("LITELLM_API_KEY") || "";
 const MCP_ACCESS_KEY = Deno.env.get("MCP_ACCESS_KEY")!;
 const PORT           = parseInt(Deno.env.get("PORT") || "8000");
 const EMBED_MODEL    = Deno.env.get("EMBED_MODEL") || "nomic-embed-text";
-const CHAT_MODEL     = Deno.env.get("CHAT_MODEL") || "deepseek-r1:8b";
+const CHAT_MODEL     = Deno.env.get("CHAT_MODEL") || "qwen3.5-mlx";
 
 function litellmHeaders(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };

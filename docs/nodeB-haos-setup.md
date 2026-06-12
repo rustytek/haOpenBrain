@@ -68,7 +68,7 @@ Managed by `/docker-entrypoint-initdb.d/01-init.sql` (runs only on first boot):
 | `litellm_url` | `http://192.168.0.21:4000` |
 | `litellm_api_key` | `<your-litellm-master-key>` |
 | `embed_model` | `nomic-embed-text` |
-| `chat_model` | `deepseek-r1_8b_reasoning` |
+| `chat_model` | `qwen3.5-mlx` |
 | `postgres_host` | `172.30.33.11` |
 | `postgres_port` | `5432` |
 | `postgres_db` | `openbrain` |
@@ -80,8 +80,8 @@ Managed by `/docker-entrypoint-initdb.d/01-init.sql` (runs only on first boot):
 On restart, the MCP server logs all models available in LiteLLM:
 
 ```
-LiteLLM models available: nomic-embed-text, deepseek-r1_8b_reasoning, ...
-Using embed_model="nomic-embed-text" chat_model="deepseek-r1_8b_reasoning"
+LiteLLM models available: nomic-embed-text, qwen3.5-mlx, ...
+Using embed_model="nomic-embed-text" chat_model="qwen3.5-mlx"
 ```
 
 To change models: update `embed_model` or `chat_model` in the Configuration tab and restart the add-on.
@@ -164,6 +164,6 @@ Add to `~/.claude/settings.json` or `.claude/settings.json`:
 | MCP health returns 404 | Add-on not running | Start OpenBrain MCP Server in HAOS |
 | `password authentication failed` | Credential mismatch | Ensure `postgres_user`/`postgres_password` in MCP config matches `db_user`/`db_password` in Database config |
 | `Name or service not known` | Wrong `postgres_host` format | Set to bare IP only (e.g. `172.30.33.11`), no `http://` prefix |
-| `Embedding failed: 400` | Model not in Ollama | Run `ollama pull nomic-embed-text` on Node A |
+| `Embedding failed: 400` | Model alias missing or misconfigured in LiteLLM | Check `/models` on Node A and ensure `nomic-embed-text` is registered in `~/litellm-config.yaml` |
 | `Embedding failed: 401` | Wrong LiteLLM API key | Check `litellm_api_key` matches `LITELLM_MASTER_KEY` in `~/.litellm.env` |
 | `Connection refused` on port 4000 | LiteLLM not running | Start LiteLLM on Node A |
