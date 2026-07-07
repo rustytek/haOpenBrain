@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- **LLM-agnostic REST API**: every brain capability is now callable as plain JSON-over-HTTP under `/api/*` — capture, hybrid search, recent, delete, stats, full wiki CRUD, consolidate, audit. Same `x-brain-key` auth as MCP. Use MCP where available; use REST for everything else (n8n, scripts, OpenWebUI, custom frontends, non-MCP models).
+- **OpenAPI 3.1 spec served at `/openapi.json`** so tool-calling frameworks and ChatGPT custom-GPT Actions can auto-generate functions against the brain.
+
 ## 1.1.0
 
 Requires **OpenBrain Database 1.1.0** (schema migrations 001–002). Update the database add-on first.

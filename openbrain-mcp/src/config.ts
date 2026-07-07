@@ -1,6 +1,6 @@
 // Central config from env (populated by run.sh from HAOS add-on options).
 
-export const VERSION = "1.1.0"; // keep in sync with config.yaml
+export const VERSION = "1.2.0"; // keep in sync with config.yaml
 
 function required(name: string): string {
   const v = Deno.env.get(name);

@@ -47,7 +47,7 @@ Other tables: `wiki_pages` (compiled knowledge layer: slug `name`, `title`, `sum
 | `brain_audit` | Structural lint: orphan pages, broken `[[wikilinks]]`, stale pages, uncovered topics |
 | `export_brain` | Markdown dump of everything to `/share/openbrain/export` |
 
-HTTP endpoints besides `/mcp`: `/health` (watchdog), `/stats.json` (HA REST sensor), `POST /capture` (HA automations), `POST /jobs/consolidate` (nightly HA automation), `/` (ingress dashboard, only served to the supervisor ingress proxy at 172.30.32.2).
+HTTP endpoints besides `/mcp`: `/health` (watchdog), `/stats.json` (HA REST sensor), `POST /capture` (HA automations), `POST /jobs/consolidate` (nightly HA automation), `/` (ingress dashboard, only served to the supervisor ingress proxy at 172.30.32.2), and the **LLM-agnostic REST API** under `/api/*` (mirrors all MCP tools; OpenAPI 3.1 spec at `/openapi.json`) — `src/rest.ts`.
 
 ## Key Design Requirements
 

@@ -58,6 +58,28 @@ The bot lets you capture thoughts from your phone with zero extra apps. It is **
 
 Security properties: outbound long-polling only (no webhook, no new LAN port); private chats only; text only; non-allowlisted senders get no reply at all; queued messages older than 10 minutes are dropped at startup; message contents are never written to the log; 20 msg/min rate limit. If the token ever leaks, an attacker still can't read or write your brain without also being on the ID allowlist — but revoke it with BotFather's `/revoke` anyway.
 
+## LLM-agnostic REST API
+
+Everything the MCP tools can do is also plain HTTP under `/api/*` (same `x-brain-key` auth), so **any** model or framework can use the brain — no MCP support required. An OpenAPI 3.1 spec is served at `/openapi.json` for auto-generating tool definitions (LangChain, OpenWebUI tool servers, n8n, ChatGPT Actions).
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/thoughts` `{content, source?}` | Capture (chunked, offline-tolerant) |
+| `GET /api/search?q=...&limit=10` | RRF hybrid search |
+| `GET /api/recent?limit=20&type=task` | Chronological listing |
+| `DELETE /api/thoughts/{id}` | Delete a thought |
+| `GET /api/stats` | Stats (same payload as `/stats.json`) |
+| `GET /api/wiki` · `GET/PUT/DELETE /api/wiki/{name}` | Wiki index + page CRUD |
+| `POST /api/consolidate` · `GET /api/audit` | Wiki maintenance |
+
+Example:
+
+```bash
+curl -H "x-brain-key: $KEY" "http://<ha-ip>:8000/api/search?q=RTK+base+station"
+```
+
+Note for cloud-hosted models (ChatGPT Actions etc.): they must be able to reach the endpoint, which lives on your LAN — expose it via your own tunnel/VPN (Tailscale, Cloudflare Tunnel) if you want that; local models and self-hosted frontends work directly.
+
 ## Home Assistant integration
 
 **Sidebar dashboard**: enabled automatically via ingress — click "OpenBrain" in the HA sidebar for read-only stats, wiki index, recent thoughts, and search.

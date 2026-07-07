@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { cfg, checkAccessKey, litellmHeaders, VERSION } from "./config.ts";
 import { waitForPostgres } from "./db.ts";
 import { registerTools } from "./tools.ts";
+import { mountRest } from "./rest.ts";
 import { startBackfillWorker } from "./backfill.ts";
 import { startTelegramBot } from "./telegram.ts";
 import { consolidate } from "./wiki.ts";
@@ -29,6 +30,9 @@ async function authorized(c: { req: { header: (n: string) => string | undefined;
 }
 
 app.get("/health", (c) => c.json({ status: "ok", version: VERSION }));
+
+// LLM-agnostic REST API (/api/*) + OpenAPI spec (/openapi.json)
+mountRest(app);
 
 app.all("/mcp", async (c) => {
   if (!(await authorized(c))) return c.text("Unauthorized", 401);
