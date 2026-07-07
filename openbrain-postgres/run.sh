@@ -17,15 +17,18 @@ echo "INFO: OpenBrain Postgres internal IP: ${CONTAINER_IP}"
 mkdir -p "$PGDATA"
 chown -R postgres:postgres "$(dirname "$PGDATA")"
 
-# On an existing database, sync the password from current options so it can be
-# changed without wiping data. Local socket uses trust auth — no password needed.
+# On an existing database: sync the password from current options (so it can be
+# changed without wiping data) and apply any pending schema migrations.
+# Local socket uses trust auth — no password needed. Fresh databases get
+# migrations via /docker-entrypoint-initdb.d/02-migrations.sh instead.
 if [ -d "$PGDATA/global" ]; then
-    echo "INFO: Syncing credentials for user '${POSTGRES_USER}'..."
+    echo "INFO: Starting temporary server for credential sync + migrations..."
     gosu postgres pg_ctl -D "$PGDATA" -o "-c listen_addresses=''" -w start
     gosu postgres psql --username="${POSTGRES_USER}" --dbname="${POSTGRES_DB}" \
         -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${POSTGRES_PASSWORD}';" \
         && echo "INFO: Password synced for '${POSTGRES_USER}'." \
         || echo "WARN: Could not sync — user '${POSTGRES_USER}' may not exist yet (will be created on first init)."
+    gosu postgres /usr/local/bin/apply_migrations.sh
     gosu postgres pg_ctl -D "$PGDATA" -w stop
 fi
 

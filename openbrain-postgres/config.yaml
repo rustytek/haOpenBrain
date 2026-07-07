@@ -1,5 +1,5 @@
 name: "OpenBrain Database"
-version: "1.0.4"
+version: "1.1.0"
 slug: "openbrain_postgres"
 description: "Private PostgreSQL + pgvector for OpenBrain. Port is not exposed to the LAN — internal hassio network only."
 arch:
@@ -8,6 +8,8 @@ arch:
 init: false
 startup: services
 boot: auto
+backup: hot
+backup_pre: /usr/local/bin/backup_pre.sh
 map:
   - data:rw
 options:

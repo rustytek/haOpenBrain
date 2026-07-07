@@ -1,5 +1,5 @@
 name: "OpenBrain MCP Server"
-version: "1.0.8"
+version: "1.1.0"
 slug: "openbrain_mcp"
 description: "MCP server exposing OpenBrain memory tools to AI assistants. Connects to the OpenBrain Database add-on."
 arch:
@@ -10,8 +10,17 @@ startup: services
 boot: auto
 hassio_api: true
 hassio_role: default
+watchdog: http://[HOST]:[PORT:8000]/health
 ports:
   8000/tcp: 8000
+ports_description:
+  8000/tcp: "MCP + API port (LAN)"
+ingress: true
+ingress_port: 8000
+panel_icon: mdi:brain
+panel_title: OpenBrain
+map:
+  - share:rw
 options:
   mcp_access_key: "changeme"
   litellm_url: "http://192.168.1.100:4000"
@@ -23,14 +32,19 @@ options:
   postgres_db: "openbrain"
   postgres_user: "openbrain"
   postgres_password: "changeme"
+  telegram_bot_token: ""
+  telegram_allowed_user_ids: []
 schema:
-  mcp_access_key: str
+  mcp_access_key: password
   litellm_url: str
-  litellm_api_key: str?
+  litellm_api_key: password?
   embed_model: str
   chat_model: str
   postgres_host: str?
   postgres_port: int
   postgres_db: str
   postgres_user: str
-  postgres_password: str
+  postgres_password: password
+  telegram_bot_token: password?
+  telegram_allowed_user_ids:
+    - int

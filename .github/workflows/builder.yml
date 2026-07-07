@@ -1,0 +1,45 @@
+# Optional: prebuild add-on images to GHCR so the NUC pulls instead of
+# compiling locally on every update.
+#
+# Manual-trigger only for now. To switch the add-ons to prebuilt images:
+#   1. Run this workflow once (Actions tab → Build add-on images → Run).
+#   2. Make the ghcr.io packages public (or configure registry auth in HA).
+#   3. Add to each add-on's config.yaml:
+#        image: "ghcr.io/rustytek/openbrain-{addon}-{arch}"
+#      and bump the version.
+# Until then, HA keeps building locally from the Dockerfile — also fine.
+
+name: Build add-on images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        addon: [openbrain-postgres, openbrain-mcp]
+        arch: [amd64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }} \
+            --target /data/${{ matrix.addon }} \
+            --image openbrain-${{ matrix.addon }}-{arch} \
+            --docker-hub ghcr.io/${{ github.repository_owner }} \
+            --addon

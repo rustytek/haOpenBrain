@@ -12,6 +12,8 @@ POSTGRES_DB=$(jq -r     '.postgres_db'      /data/options.json)
 POSTGRES_USER=$(jq -r   '.postgres_user'    /data/options.json)
 POSTGRES_PASSWORD=$(jq -r '.postgres_password' /data/options.json)
 CONFIGURED_HOST=$(jq -r '.postgres_host // ""' /data/options.json)
+TELEGRAM_BOT_TOKEN=$(jq -r '.telegram_bot_token // ""' /data/options.json)
+TELEGRAM_ALLOWED_USER_IDS=$(jq -r '(.telegram_allowed_user_ids // []) | map(tostring) | join(",")' /data/options.json)
 
 # Auto-discover Postgres IP via HAOS Supervisor API (best-effort)
 POSTGRES_HOST=""
@@ -42,6 +44,7 @@ fi
 echo "INFO: Connecting to Postgres at ${POSTGRES_HOST}:${POSTGRES_PORT}"
 
 export MCP_ACCESS_KEY LITELLM_URL LITELLM_API_KEY EMBED_MODEL CHAT_MODEL POSTGRES_HOST POSTGRES_PORT \
-       POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD
+       POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD TELEGRAM_BOT_TOKEN TELEGRAM_ALLOWED_USER_IDS
 
-exec deno run --allow-net --allow-env /app/src/index.ts
+# /share is mapped for export_brain markdown output
+exec deno run --allow-net --allow-env --allow-read=/share --allow-write=/share /app/src/index.ts
