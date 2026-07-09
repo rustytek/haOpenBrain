@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- **Migration failures no longer crash the container.** `run.sh` ran the migration step under `set -e` with no failure guard — if a migration errored for any reason, the whole script aborted *before* starting the real Postgres server, leaving the port closed with no explanation (the MCP add-on would just see "connection refused" forever). A migration failure is now logged loudly (the SQL error plus a clear `ERROR:` banner) but the database still starts, so it stays reachable for diagnosis instead of crash-looping silently.
+
 ## 1.1.0
 
 - **Schema migration system**: numbered migrations in `/migrations` tracked in a `schema_migrations` table. Existing databases are migrated automatically during add-on startup; fresh installs converge to the same schema. `init.sql` is now the frozen v1 baseline — all future schema changes ship as migrations.

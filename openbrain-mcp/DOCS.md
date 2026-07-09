@@ -18,6 +18,21 @@ Install and start the **OpenBrain Database** add-on first.
 | `telegram_bot_token` | Optional. Bot token from @BotFather. Empty = Telegram disabled. |
 | `telegram_allowed_user_ids` | List of numeric Telegram user IDs allowed to talk to the bot. **The bot refuses to start if the token is set but this list is empty.** |
 
+### "Invalid list for option 'telegram_allowed_user_ids'" when saving
+
+This is a Home Assistant frontend quirk, not an OpenBrain bug — it shows up after an update adds a new list-type option, when the config page's form widget is still bound to the old (cached) schema. The most reliable fix: open the add-on's **Configuration** tab, switch to the **raw YAML editor** (the `{}` icon, top right of the configuration card) instead of the form view, and type the options directly:
+
+```yaml
+mcp_access_key: your-key
+litellm_url: http://192.168.0.21:4000
+...
+telegram_bot_token: "123456789:AA...your-token"
+telegram_allowed_user_ids:
+  - 123456789
+```
+
+If the raw editor also misbehaves, hard-refresh the browser tab (Ctrl+Shift+R) or restart the Supervisor (Settings → System → Hardware menu → Restart Supervisor) to force it to reload this add-on's schema, then try again.
+
 ## Connecting an AI client (MCP)
 
 Endpoint: `http://<ha-ip>:8000/mcp` with header `x-brain-key: <mcp_access_key>`.
@@ -146,3 +161,9 @@ Rows are stamped with the model that embedded them. If you change `embed_model`,
 ## Export
 
 Run the `export_brain` tool (from any MCP client) to dump everything as markdown to `/share/openbrain/export` — monthly thought files, one file per wiki page, and an index. Useful as a plain-text escape hatch, an Obsidian import source, or an extra backup layer.
+
+## Troubleshooting: "WARN: Postgres not ready" / "Connection refused" on startup
+
+1. **Check the log line just above it**: `INFO: Auto-discovered Postgres IP: ...` means discovery worked — the problem is the database itself isn't listening (see step 3). `WARN: Supervisor auto-discovery returned nothing` means discovery failed and it fell back to your manually-typed `postgres_host` — make sure that field is empty (let auto-discovery run) or is a bare IP with no `http://` and no port.
+2. **`postgres_host` must be a bare IP**, e.g. `172.30.33.11` — not a URL, not `localhost` (that resolves inside the MCP container, not the database container).
+3. **Check the OpenBrain Database add-on's own log.** If it shows an `ERROR: A schema migration FAILED` banner, the SQL error printed just above it is the real cause — fix that and restart the add-on. If the database add-on isn't even in a "Started" state, start it first; the MCP add-on will keep retrying every 2 seconds for about a minute and then exit cleanly (the Supervisor restarts it automatically).

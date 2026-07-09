@@ -97,7 +97,15 @@ app.get("/", async (c) => {
 
 // ── Startup ───────────────────────────────────────────────────────────────────
 
-await waitForPostgres();
+try {
+  await waitForPostgres();
+} catch (e) {
+  // Exit cleanly instead of leaving an unresolved top-level await (which Deno
+  // reports as an opaque "promise never resolved" with no useful context).
+  // A non-zero exit lets the HAOS supervisor apply its normal restart policy.
+  console.error(`FATAL: ${(e as Error).message}`);
+  Deno.exit(1);
+}
 startBackfillWorker();
 startTelegramBot();
 

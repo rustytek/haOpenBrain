@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+
+### Fixed
+
+- **Postgres auto-discovery broken for custom-repository installs.** Add-ons installed from a custom repository (this one) get their runtime slug prefixed with a repository hash by the Supervisor (e.g. `c1412455_openbrain_mcp`), not the bare `openbrain_mcp` from `config.yaml`. `run.sh` hardcoded the bare `openbrain_postgres` slug when querying the Supervisor API for the database's IP, so the lookup always 404'd, auto-discovery silently "returned nothing" every boot, and the add-on fell back to whatever was (or wasn't) typed into `postgres_host`. Now it reads its own slug via `/addons/self/info`, derives the shared repo-hash prefix, and queries the correctly-prefixed Postgres slug.
+- `postgres_host` is now sanitized if you paste a full URL (`http://host:port/`) instead of a bare hostname/IP — the scheme and port are stripped automatically.
+- A failed startup no longer hangs as an opaque "Top-level await promise never resolved" — it logs a clear `FATAL:` line and exits so the Supervisor's restart policy applies normally.
+
 ## 1.2.0
 
 - **LLM-agnostic REST API**: every brain capability is now callable as plain JSON-over-HTTP under `/api/*` — capture, hybrid search, recent, delete, stats, full wiki CRUD, consolidate, audit. Same `x-brain-key` auth as MCP. Use MCP where available; use REST for everything else (n8n, scripts, OpenWebUI, custom frontends, non-MCP models).

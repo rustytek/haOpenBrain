@@ -28,7 +28,18 @@ if [ -d "$PGDATA/global" ]; then
         -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${POSTGRES_PASSWORD}';" \
         && echo "INFO: Password synced for '${POSTGRES_USER}'." \
         || echo "WARN: Could not sync — user '${POSTGRES_USER}' may not exist yet (will be created on first init)."
-    gosu postgres /usr/local/bin/apply_migrations.sh
+
+    # A migration failure must NOT crash the container (that leaves Postgres
+    # unreachable with a bare "connection refused" on the MCP side and no clue
+    # why). Log it loudly instead and still bring the real server up — schema
+    # is just behind and the error above says exactly what to fix.
+    if ! gosu postgres /usr/local/bin/apply_migrations.sh; then
+        echo "ERROR: ============================================================"
+        echo "ERROR: A schema migration FAILED (see SQL error above). The"
+        echo "ERROR: database is starting anyway so it stays reachable, but the"
+        echo "ERROR: schema is now behind — fix the cause and restart this add-on."
+        echo "ERROR: ============================================================"
+    fi
     gosu postgres pg_ctl -D "$PGDATA" -w stop
 fi
 
