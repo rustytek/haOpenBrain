@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- **Default `embed_model`/`chat_model` switched to LiteLLM tier aliases**: `embedding` (resolves to `nomic-embed-text`) and `knowledge_local_high` (resolves to the strongest clean local reasoning model, currently `deepseek-r1:8b`) instead of hardcoded direct model names. Aliases are stable across Node A model swaps — no add-on config edit needed when aiProxy's underlying model roster changes. Existing installs keep their currently-saved values until manually updated; only fresh installs pick up the new default automatically.
+- Note: switching an existing install's `embed_model` from a direct name to the `embedding` alias re-stamps the `embedding_model` column, which triggers a one-time full re-embed of the corpus via the backfill worker (harmless — no data loss, ~16 rows/minute).
+
 ## 1.2.1
 
 ### Fixed

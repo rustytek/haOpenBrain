@@ -1,6 +1,6 @@
 // Central config from env (populated by run.sh from HAOS add-on options).
 
-export const VERSION = "1.2.1"; // keep in sync with config.yaml
+export const VERSION = "1.2.2"; // keep in sync with config.yaml
 
 function required(name: string): string {
   const v = Deno.env.get(name);
@@ -13,8 +13,8 @@ export const cfg = {
   litellmApiKey: Deno.env.get("LITELLM_API_KEY") || "",
   mcpAccessKey: required("MCP_ACCESS_KEY"),
   port: parseInt(Deno.env.get("PORT") || "8000"),
-  embedModel: Deno.env.get("EMBED_MODEL") || "nomic-embed-text",
-  chatModel: Deno.env.get("CHAT_MODEL") || "qwen3.5-mlx",
+  embedModel: Deno.env.get("EMBED_MODEL") || "embedding",
+  chatModel: Deno.env.get("CHAT_MODEL") || "knowledge_local_high",
 
   // Telegram: fail-closed — the bot only starts when BOTH a token and a
   // non-empty user-ID allowlist are configured.

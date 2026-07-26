@@ -69,8 +69,8 @@ Add: `https://github.com/rustytek/openBrain`
    | `mcp_access_key` | A secret key you choose (e.g., `my-brain-key-2026`) |
    | `litellm_url` | `http://<NODE_A_IP>:4000` |
    | `litellm_api_key` | `<your-litellm-master-key>` |
-   | `embed_model` | `nomic-embed-text` |
-   | `chat_model` | `qwen3.5-mlx` |
+   | `embed_model` | `embedding` (tier alias — resolves to `nomic-embed-text` on Node A) |
+   | `chat_model` | `knowledge_local_high` (tier alias — resolves to the strongest clean local reasoning model on Node A) |
    | `postgres_host` | Leave blank — auto-discovered via HAOS Supervisor API. Set manually only if auto-discovery fails (use the IP from Step 2). |
    | `postgres_port` | `5432` |
    | `postgres_db` | `openbrain` |

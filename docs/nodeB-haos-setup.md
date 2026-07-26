@@ -67,8 +67,8 @@ Managed by `/docker-entrypoint-initdb.d/01-init.sql` (runs only on first boot):
 | `mcp_access_key` | `<your-mcp-access-key>` |
 | `litellm_url` | `http://192.168.0.21:4000` |
 | `litellm_api_key` | `<your-litellm-master-key>` |
-| `embed_model` | `nomic-embed-text` |
-| `chat_model` | `qwen3.5-mlx` |
+| `embed_model` | `embedding` (tier alias — resolves to `nomic-embed-text` on Node A) |
+| `chat_model` | `knowledge_local_high` (tier alias — resolves to the strongest clean local reasoning model on Node A) |
 | `postgres_host` | `172.30.33.11` |
 | `postgres_port` | `5432` |
 | `postgres_db` | `openbrain` |
@@ -80,11 +80,11 @@ Managed by `/docker-entrypoint-initdb.d/01-init.sql` (runs only on first boot):
 On restart, the MCP server logs all models available in LiteLLM:
 
 ```
-LiteLLM models available: nomic-embed-text, qwen3.5-mlx, ...
-Using embed_model="nomic-embed-text" chat_model="qwen3.5-mlx"
+LiteLLM models available: nomic-embed-text, qwen3.5-mlx, embedding, knowledge_local_high, ...
+Using embed_model="embedding" chat_model="knowledge_local_high"
 ```
 
-To change models: update `embed_model` or `chat_model` in the Configuration tab and restart the add-on.
+To change models: update `embed_model` or `chat_model` in the Configuration tab and restart the add-on. Prefer the tier aliases (`embedding`, `knowledge_local_high`/`_med`/`_low`) over direct model names — see "Which models power the brain internally?" in `CONNECTING.md`.
 
 ### MCP Tools
 
@@ -164,6 +164,6 @@ Add to `~/.claude/settings.json` or `.claude/settings.json`:
 | MCP health returns 404 | Add-on not running | Start OpenBrain MCP Server in HAOS |
 | `password authentication failed` | Credential mismatch | Ensure `postgres_user`/`postgres_password` in MCP config matches `db_user`/`db_password` in Database config |
 | `Name or service not known` | Wrong `postgres_host` format | Set to bare IP only (e.g. `172.30.33.11`), no `http://` prefix |
-| `Embedding failed: 400` | Model alias missing or misconfigured in LiteLLM | Check `/models` on Node A and ensure `nomic-embed-text` is registered in `~/litellm-config.yaml` |
+| `Embedding failed: 400` | Model alias missing or misconfigured in LiteLLM | Check `/models` on Node A and ensure `embedding` (and its target, `nomic-embed-text`) is registered in `~/litellm-config.yaml` |
 | `Embedding failed: 401` | Wrong LiteLLM API key | Check `litellm_api_key` matches `LITELLM_MASTER_KEY` in `~/.litellm.env` |
 | `Connection refused` on port 4000 | LiteLLM not running | Start LiteLLM on Node A |

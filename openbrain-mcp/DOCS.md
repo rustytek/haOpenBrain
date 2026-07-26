@@ -11,8 +11,8 @@ Install and start the **OpenBrain Database** add-on first.
 | `mcp_access_key` | Shared secret. Every MCP/REST request must send it as `x-brain-key` header or `?key=` query param. Change it from the default. |
 | `litellm_url` | LiteLLM gateway on Node A, e.g. `http://192.168.0.21:4000`. If unreachable, capture still works — embeddings backfill automatically when it returns. |
 | `litellm_api_key` | Optional bearer token for LiteLLM. |
-| `embed_model` | Embedding model name in LiteLLM (default `nomic-embed-text`). Changing it re-embeds your whole brain in the background — see "Swapping embedding models". |
-| `chat_model` | Chat model used for metadata extraction and wiki consolidation (default `qwen3.5-mlx`). |
+| `embed_model` | Embedding model name in LiteLLM (default `embedding` — a stable tier alias that resolves to `nomic-embed-text` on Node A). Changing it re-embeds your whole brain in the background — see "Swapping embedding models". |
+| `chat_model` | Chat model used for metadata extraction and wiki consolidation (default `knowledge_local_high` — a stable tier alias for the strongest clean local reasoning model on Node A). |
 | `postgres_host` | Leave empty — auto-discovered via the Supervisor. Set only if the log tells you to (use the IP printed by the database add-on). |
 | `postgres_port` / `postgres_db` / `postgres_user` / `postgres_password` | Must match the database add-on options. |
 | `telegram_bot_token` | Optional. Bot token from @BotFather. Empty = Telegram disabled. |

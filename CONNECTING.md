@@ -84,7 +84,7 @@ You have access to my personal memory system (OpenBrain).
 
 ### Which models power the brain internally?
 
-Separate question, already agnostic: embeddings and metadata extraction go through **LiteLLM** on Node A. Change `embed_model` / `chat_model` in the add-on config to any model LiteLLM routes. Swapping `embed_model` auto-re-embeds your whole brain in the background (768-dim models only, e.g. nomic variants).
+Separate question, already agnostic: embeddings and metadata extraction go through **LiteLLM** on Node A. `embed_model` / `chat_model` default to the tier aliases `embedding` and `knowledge_local_high` — stable names whose underlying model can change on Node A without touching this config. You can still point `embed_model` / `chat_model` at any direct model name LiteLLM routes, if you want to bypass the alias layer. Swapping `embed_model` (whether to another alias or a direct name) auto-re-embeds your whole brain in the background (768-dim models only, e.g. nomic variants).
 
 ---
 

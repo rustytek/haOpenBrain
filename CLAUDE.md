@@ -14,7 +14,7 @@ The implementation is two custom private HAOS add-ons in this repo:
 ## Two-Node Architecture
 
 **Node A — Inference & Gateway (Mac M4, 16GB RAM)**
-- **LiteLLM** is the only API surface Node B calls. It exposes `qwen3.5-mlx` for logic/metadata extraction and `nomic-embed-text` for local embeddings (768-dim, 8192-token context).
+- **LiteLLM** is the only API surface Node B calls. OpenBrain calls it through the stable tier aliases `knowledge_local_high` (metadata extraction/wiki consolidation) and `embedding` (768-dim local embeddings, 8192-token context) rather than direct model names — the physical model behind each alias can change on Node A without any config edit here. See aiProxy's `CLAUDE.md` for the current alias-to-model mapping.
 - Local model runtimes on Node A sit behind LiteLLM; the MCP server should never call Ollama or MLX runtime endpoints directly.
 
 **Node B — Storage & MCP Server (Intel NUC running Home Assistant OS / HAOS)**
