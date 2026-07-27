@@ -32,15 +32,14 @@ Key services:
 ## Local Models
 
 ```bash
-ollama pull nomic-embed-text   # embeddings (768-dim) — used by openBrain
-ollama pull qwen3.5:9b-mlx     # MLX chat model served behind LiteLLM as qwen3.5-mlx
+ollama pull nomic-embed-text   # embeddings (768-dim) — used by openBrain, served via the `embedding` alias
+ollama pull deepseek-r1:8b     # served via the `knowledge_local_high` alias — openBrain's chat model
 ollama pull llava              # vision — used by Telegram bot photo handler
-ollama pull qwen35-moe         # general chat
 ollama pull qwen2.5-coder:14b
 ollama pull gemma3:4b
-ollama pull qwen3-vl:8b
-ollama pull llama3.2-vision:11b
 ```
+
+See `aiProxy/litellm-config.yaml` for the full, current model list — this is not exhaustive and drifts out of sync easily; that file is the source of truth.
 
 ---
 
@@ -71,167 +70,14 @@ UI_PASSWORD=<admin-password>
 
 ### Config file — `~/litellm-config.yaml`
 
-Full model list (local runtimes + Anthropic + NVIDIA NIM + DeepSeek cloud). openBrain should use LiteLLM aliases only:
+The full model list (local runtimes + Anthropic + NVIDIA NIM + Groq + Cerebras + OpenRouter + Gemini) is tracked in the **aiProxy repo**, not duplicated here — a stale copy in this doc is exactly what caused openBrain to be misconfigured to call a raw model name directly in the past. See `aiProxy/litellm-config.yaml` (working copy, synced from `~/litellm-config.yaml` on this Mac) and `aiProxy/CLAUDE.md` for the current model list, provider setup, and the full Tier Aliases table.
 
-```yaml
-model_list:
+**openBrain must only ever call LiteLLM tier aliases, never a raw model name or Ollama directly:**
 
-  # LiteLLM alias used by openBrain metadata extraction
-  - model_name: qwen3.5-mlx
-    litellm_params:
-      model: ollama_chat/qwen3.5:9b-mlx
-      api_base: http://localhost:11434
-      timeout: 300
+- `embed_model` → `embedding` (resolves to `nomic-embed-text`)
+- `chat_model` → `knowledge_local_high` (resolves to the strongest clean local reasoning model — currently `deepseek-r1:8b`; see aiProxy's `knowledge_local_*` tier for the fallback chain)
 
-  # Ollama-backed aliases exposed only through LiteLLM
-  - model_name: qwen35-moe_chat
-    litellm_params:
-      model: ollama_chat/qwen35-moe:latest
-      api_base: http://localhost:11434
-      timeout: 180
-
-  - model_name: gpt-3.5-turbo          # OpenAI-compat alias
-    litellm_params:
-      model: ollama_chat/qwen35-moe:latest
-      api_base: http://localhost:11434
-      timeout: 180
-
-  - model_name: qwen35-moe_chat-fast
-    litellm_params:
-      model: ollama_chat/qwen3.5:9b
-      api_base: http://localhost:11434
-      timeout: 60
-
-  # Ollama: Embeddings (used by openBrain)
-  - model_name: nomic-embed-text
-    litellm_params:
-      model: ollama/nomic-embed-text:latest
-      api_base: http://localhost:11434
-
-  - model_name: embeddings
-    litellm_params:
-      model: ollama/nomic-embed-text:latest
-      api_base: http://localhost:11434
-
-  - model_name: text-embedding-ada-002  # OpenAI-compat alias
-    litellm_params:
-      model: ollama/nomic-embed-text:latest
-      api_base: http://localhost:11434
-
-  # Ollama: Coding
-  - model_name: qwen2.5-coder_14b_coding
-    litellm_params:
-      model: ollama_chat/qwen2.5-coder:14b
-      api_base: http://localhost:11434
-      timeout: 180
-
-  - model_name: gpt-4                  # OpenAI-compat alias
-    litellm_params:
-      model: ollama_chat/qwen2.5-coder:14b
-      api_base: http://localhost:11434
-      timeout: 180
-
-
-  # Ollama: Fast / lightweight
-  - model_name: gemma3_4b_fast
-    litellm_params:
-      model: ollama_chat/gemma3:4b
-      api_base: http://localhost:11434
-      timeout: 60
-
-  # Ollama: Vision (used by Telegram bot photo handler)
-  - model_name: qwen3-vl_8b_vision
-    litellm_params:
-      model: ollama_chat/qwen3-vl:8b
-      api_base: http://localhost:11434
-      timeout: 120
-
-  - model_name: llama3.2-vision_11b_vision-pro
-    litellm_params:
-      model: ollama_chat/llama3.2-vision:11b
-      api_base: http://localhost:11434
-      timeout: 120
-
-  # Anthropic
-  - model_name: claude-opus
-    litellm_params:
-      model: anthropic/claude-opus-4-6
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  - model_name: claude-sonnet
-    litellm_params:
-      model: anthropic/claude-sonnet-4-6
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  - model_name: claude-haiku
-    litellm_params:
-      model: anthropic/claude-haiku-4-5-20251001
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  - model_name: claude-fallback
-    litellm_params:
-      model: anthropic/claude-haiku-4-5-20251001
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  # NVIDIA NIM
-  - model_name: nim-llama_70b_instruct
-    litellm_params:
-      model: openai/meta/llama-3.1-70b-instruct
-      api_base: https://integrate.api.nvidia.com/v1
-      api_key: os.environ/NVIDIA_NIM_API_KEY
-      timeout: 120
-
-  - model_name: nim-nemotron_70b
-    litellm_params:
-      model: openai/nvidia/llama-3.1-nemotron-70b-instruct
-      api_base: https://integrate.api.nvidia.com/v1
-      api_key: os.environ/NVIDIA_NIM_API_KEY
-      timeout: 120
-
-  - model_name: nim-qwen_72b
-    litellm_params:
-      model: openai/qwen/qwen2.5-72b-instruct
-      api_base: https://integrate.api.nvidia.com/v1
-      api_key: os.environ/NVIDIA_NIM_API_KEY
-      timeout: 120
-
-  # DeepSeek Cloud
-  - model_name: deepseek-chat
-    litellm_params:
-      model: deepseek/deepseek-chat
-      api_key: os.environ/DEEPSEEK_API_KEY
-      timeout: 180
-
-  - model_name: deepseek-reasoner
-    litellm_params:
-      model: deepseek/deepseek-reasoner
-      api_key: os.environ/DEEPSEEK_API_KEY
-      timeout: 300
-
-router_settings:
-  routing_strategy: simple-shuffle
-  num_retries: 2
-  timeout: 60
-  fallbacks:
-    - {"chat": ["claude-fallback"]}
-    - {"gpt-3.5-turbo": ["claude-fallback"]}
-    - {"coding": ["claude-fallback"]}
-    - {"gpt-4": ["claude-fallback"]}
-    - {"qwen3.5-mlx": ["deepseek-reasoner"]}
-    - {"fast": ["claude-haiku"]}
-
-general_settings:
-  master_key: os.environ/LITELLM_MASTER_KEY
-  ui_username: os.environ/UI_USERNAME
-  ui_password: os.environ/UI_PASSWORD
-  database_url: os.environ/DATABASE_URL
-
-litellm_settings:
-  success_callback: []
-  failure_callback: []
-  request_timeout: 180
-  telemetry: False
-```
+Do **not** point `chat_model` at `qwen3.5-mlx` / `aLocalModel_qwen3.5-mlx` directly — as of 2026-07-20 that model has a known MLX-engine bug (doesn't reliably stop generating, ties up Ollama for minutes) and was deliberately pulled out of every tier alias for that reason. It's kept in aiProxy's config only for manual/direct debugging calls.
 
 ### Start script — `~/litellm-start.sh`
 
