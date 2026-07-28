@@ -1,6 +1,6 @@
 // Central config from env (populated by run.sh from HAOS add-on options).
 
-export const VERSION = "1.2.2"; // keep in sync with config.yaml
+export const VERSION = "1.2.3"; // keep in sync with config.yaml
 
 function required(name: string): string {
   const v = Deno.env.get(name);
@@ -26,6 +26,40 @@ export const cfg = {
 
   exportDir: Deno.env.get("EXPORT_DIR") || "/share/openbrain/export",
 };
+
+// OpenBrain addresses models ONLY by LiteLLM tier alias — never by a concrete
+// model name. The alias is the whole point of the indirection: Node A can swap
+// the model behind it with no config change here. So this is an ALLOWLIST, not
+// a denylist of bad names — a direct name that happens to work today
+// (`nomic-embed-text`) is still wrong, because it pins the brain to one model
+// and silently stops following the alias.
+//
+// Extend these when aiProxy gains a new tier alias OpenBrain should use.
+const ALLOWED_EMBED_MODELS = ["embedding"]; // dimension-locked: 768-dim, pinned to one model by design
+const ALLOWED_CHAT_MODELS = /^knowledge_local_(high|med|low)$/; // local-only by design (privacy)
+
+export function assertLiteLLMOnly(): void {
+  if (!ALLOWED_EMBED_MODELS.includes(cfg.embedModel)) {
+    throw new Error(
+      `embed_model="${cfg.embedModel}" is not a LiteLLM tier alias. OpenBrain must ` +
+        `address models by alias only, never by a concrete model name. ` +
+        `Set embed_model to: ${ALLOWED_EMBED_MODELS.join(" | ")}`,
+    );
+  }
+  if (!ALLOWED_CHAT_MODELS.test(cfg.chatModel)) {
+    throw new Error(
+      `chat_model="${cfg.chatModel}" is not a LiteLLM tier alias. OpenBrain must ` +
+        `address models by alias only, never by a concrete model name. ` +
+        `Set chat_model to one of: knowledge_local_high | knowledge_local_med | knowledge_local_low`,
+    );
+  }
+  if (/:11434(\/|$)/.test(cfg.litellmUrl)) {
+    throw new Error(
+      `litellm_url="${cfg.litellmUrl}" points at port 11434 (Ollama). OpenBrain must ` +
+        `go through LiteLLM — use the gateway URL (default port 4000).`,
+    );
+  }
+}
 
 export function litellmHeaders(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };

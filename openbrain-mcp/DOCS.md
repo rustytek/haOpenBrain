@@ -11,12 +11,33 @@ Install and start the **OpenBrain Database** add-on first.
 | `mcp_access_key` | Shared secret. Every MCP/REST request must send it as `x-brain-key` header or `?key=` query param. Change it from the default. |
 | `litellm_url` | LiteLLM gateway on Node A, e.g. `http://192.168.0.21:4000`. If unreachable, capture still works — embeddings backfill automatically when it returns. |
 | `litellm_api_key` | Optional bearer token for LiteLLM. |
-| `embed_model` | Embedding model name in LiteLLM (default `embedding` — a stable tier alias that resolves to `nomic-embed-text` on Node A). Changing it re-embeds your whole brain in the background — see "Swapping embedding models". |
-| `chat_model` | Chat model used for metadata extraction and wiki consolidation (default `knowledge_local_high` — a stable tier alias for the strongest clean local reasoning model on Node A). |
+| `embed_model` | Embedding model name in LiteLLM (default `embedding` — a stable tier alias that resolves to `nomic-embed-text` on Node A). Changing it re-embeds your whole brain in the background — see "Swapping embedding models". Must be a LiteLLM alias, not a direct model name — see "LiteLLM-only enforcement". |
+| `chat_model` | Chat model used for metadata extraction and wiki consolidation (default `knowledge_local_high` — a stable tier alias for the strongest clean local reasoning model on Node A). Must be a LiteLLM alias, not a direct model name — see "LiteLLM-only enforcement". |
 | `postgres_host` | Leave empty — auto-discovered via the Supervisor. Set only if the log tells you to (use the IP printed by the database add-on). |
 | `postgres_port` / `postgres_db` / `postgres_user` / `postgres_password` | Must match the database add-on options. |
 | `telegram_bot_token` | Optional. Bot token from @BotFather. Empty = Telegram disabled. |
 | `telegram_allowed_user_ids` | List of numeric Telegram user IDs allowed to talk to the bot. **The bot refuses to start if the token is set but this list is empty.** |
+
+### LiteLLM-only enforcement
+
+OpenBrain reaches models **only** through the LiteLLM gateway on Node A, and only via stable tier aliases (`embedding`, `knowledge_local_high`). It never addresses Ollama or any other model runtime directly — that's what keeps Node A's model roster swappable without touching add-on config.
+
+Because `embed_model` / `chat_model` are free-text fields, the add-on validates them at startup against an **allowlist** and **refuses to boot** with a `FATAL:` line naming the bad option:
+
+| Option | Accepted values |
+|---|---|
+| `embed_model` | `embedding` |
+| `chat_model` | `knowledge_local_high` · `knowledge_local_med` · `knowledge_local_low` |
+
+These are aiProxy's tier aliases for OpenBrain — `knowledge_local_*` is local-only by design (your memory never reaches a remote model), and `embedding` is dimension-locked to one 768-dim model so the vector index stays valid.
+
+It's an allowlist rather than a denylist of known-bad names on purpose: a concrete model name that happens to resolve today (`nomic-embed-text`, `aLocalModel_qwen3.5-mlx`) is still wrong, because naming a model defeats the indirection that lets Node A swap models without any edit here.
+
+`litellm_url` is checked too — pointing it at port `11434` (Ollama) is rejected.
+
+If the add-on stops booting after an update with one of these errors, open **Configuration** and set `embed_model: embedding` and `chat_model: knowledge_local_high`. Updating an add-on never rewrites options you previously saved, so an install predating the alias defaults keeps its old direct model names until you change them by hand.
+
+> If a *correctly* configured alias still ends up running a model you didn't expect, the routing is on Node A, not here — check the `fallbacks:` chain in aiProxy's `litellm-config.yaml`. A failing primary silently promotes the next tier.
 
 ### "Invalid list for option 'telegram_allowed_user_ids'" when saving
 

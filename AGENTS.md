@@ -15,7 +15,7 @@ The implementation is two custom private HAOS add-ons in this repo:
 
 **Node A â€” Inference & Gateway (Mac M4, 16GB RAM)**
 - **LiteLLM** is the only API surface Node B calls. OpenBrain calls it through the stable tier aliases `knowledge_local_high` (metadata extraction/wiki consolidation) and `embedding` (768-dim local embeddings, 8192-token context) rather than direct model names - the physical model behind each alias can change on Node A without any config edit here. See aiProxy's CLAUDE.md for the current alias-to-model mapping.
-- Local model runtimes on Node A sit behind LiteLLM; the MCP server should never call Ollama or MLX runtime endpoints directly.
+- Local model runtimes on Node A sit behind LiteLLM; the MCP server must never call Ollama or MLX runtime endpoints directly, and must address models **only by tier alias, never by concrete model name**. **Enforced at startup** — `assertLiteLLMOnly()` in `src/config.ts` allowlists `embed_model` to `embedding` and `chat_model` to `knowledge_local_{high,med,low}`, rejects a `litellm_url` on port 11434, and exits rather than booting misconfigured. Extend the allowlist there when aiProxy gains a new alias OpenBrain should use.
 
 **Node B â€” Storage & MCP Server (Intel NUC running Home Assistant OS / HAOS)**
 - **PostgreSQL + pgvector**: custom private HAOS add-on â€” not the community add-on, to limit data exposure. Postgres port is not exposed to the LAN.

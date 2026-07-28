@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.3
+
+### Fixed
+
+- **Startup guard: model options must now be LiteLLM tier aliases.** `embed_model` / `chat_model` are free-text fields, and updating an add-on never rewrites options you already saved — so installs predating 1.2.2 kept concrete model names indefinitely and silently stopped following the aliases. Observed in the wild: `chat_model: aLocalModel_qwen3.5-mlx` (the model deliberately excluded from every tier alias for its MLX-engine hang bug) and `embed_model: nomic-embed-text`, both still routed through LiteLLM but pinned to one fixed model.
+
+  The server now validates model options at boot against an **allowlist** — `embed_model` must be `embedding`; `chat_model` must be `knowledge_local_{high,med,low}` — and exits with a clear `FATAL:` line naming the offending option. This is deliberately an allowlist rather than a denylist of known-bad names: a direct name that happens to resolve today is still wrong, because addressing a model by name defeats the indirection that lets Node A swap models without touching add-on config. `litellm_url` is checked too — pointing it at port 11434 (Ollama) is rejected.
+
+### Note
+
+- If the add-on stops booting after this update, that's the guard doing its job. Open **Configuration**, set `embed_model: embedding` and `chat_model: knowledge_local_high`, and restart. Switching `embed_model` to the alias re-stamps `embedding_model` and triggers a one-time background re-embed (~16 rows/minute, no data loss).
+
 ## 1.2.2
 
 - **Default `embed_model`/`chat_model` switched to LiteLLM tier aliases**: `embedding` (resolves to `nomic-embed-text`) and `knowledge_local_high` (resolves to the strongest clean local reasoning model, currently `deepseek-r1:8b`) instead of hardcoded direct model names. Aliases are stable across Node A model swaps — no add-on config edit needed when aiProxy's underlying model roster changes. Existing installs keep their currently-saved values until manually updated; only fresh installs pick up the new default automatically.

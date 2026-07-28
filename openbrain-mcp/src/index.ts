@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
-import { cfg, checkAccessKey, litellmHeaders, VERSION } from "./config.ts";
+import { assertLiteLLMOnly, cfg, checkAccessKey, litellmHeaders, VERSION } from "./config.ts";
 import { waitForPostgres } from "./db.ts";
 import { registerTools } from "./tools.ts";
 import { mountRest } from "./rest.ts";
@@ -98,6 +98,7 @@ app.get("/", async (c) => {
 // ── Startup ───────────────────────────────────────────────────────────────────
 
 try {
+  assertLiteLLMOnly();
   await waitForPostgres();
 } catch (e) {
   // Exit cleanly instead of leaving an unresolved top-level await (which Deno
