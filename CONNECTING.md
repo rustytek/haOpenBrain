@@ -34,6 +34,8 @@ Claude Code one-liner alternative:
 claude mcp add openbrain --transport http http://<ha-ip>:8000/mcp --header "x-brain-key: <mcp_access_key>"
 ```
 
+**Privacy rule (owner, 2026-11-12): the brain is for local models only.** A cloud model that can call these tools sends what it reads to its provider, so don't add this server to a normal Claude Code, Claude Desktop, Codex or ChatGPT setup. On the Mac Mini, use webTerminal's **Brain session** (`webterm local brain`): Claude Code running on a local LiteLLM alias with a proxy key that cannot reach a cloud model. See `../webTerminal/README.md`, "Local models and openBrain".
+
 Most other MCP-capable clients (ChatGPT connectors, Gemini CLI, Cursor, OpenWebUI's MCP support) take the same two facts: the URL and the `x-brain-key` header. Once connected, the model sees all tools: `capture_thought`, `search_thoughts`, `browse_recent`, `brain_stats`, `update_thought`, `delete_thought`, `get_index`, `read_page`, `write_page`, `delete_page`, `consolidate_brain`, `brain_audit`, `export_brain`.
 
 ### Path B: Plain REST (any model, any framework, any script)
