@@ -33,7 +33,7 @@ Key services:
 
 ```bash
 ollama pull nomic-embed-text   # embeddings (768-dim) — used by openBrain, served via the `embedding` alias
-ollama pull deepseek-r1:8b     # served via the `knowledge_local_high` alias — openBrain's chat model
+ollama pull qwen3:8b           # served via the `knowledge_local_*` and `tooling_local_*` aliases — openBrain's chat model (since 2026-11-13 every local alias runs on a resident model)
 ollama pull llava              # vision — used by Telegram bot photo handler
 ollama pull qwen2.5-coder:14b
 ollama pull gemma3:4b
@@ -75,7 +75,7 @@ The full model list (local runtimes + Anthropic + NVIDIA NIM + Groq + Cerebras +
 **openBrain must only ever call LiteLLM tier aliases, never a raw model name or Ollama directly:**
 
 - `embed_model` → `embedding` (resolves to `nomic-embed-text`)
-- `chat_model` → `knowledge_local_high` (resolves to the strongest clean local reasoning model — currently `deepseek-r1:8b`; see aiProxy's `knowledge_local_*` tier for the fallback chain)
+- `chat_model` → `knowledge_local_high` (resident `qwen3:8b` with thinking on since 2026-11-13: slow, 30-70s per call, but it never loads a second model; see aiProxy's `CLAUDE.md`). Optional `meta_model` → `knowledge_local_low` (same model, thinking off, about a second) for per-capture metadata extraction.
 
 Do **not** point `chat_model` at `qwen3.5-mlx` / `aLocalModel_qwen3.5-mlx` directly — as of 2026-07-20 that model has a known MLX-engine bug (doesn't reliably stop generating, ties up Ollama for minutes) and was deliberately pulled out of every tier alias for that reason. It's kept in aiProxy's config only for manual/direct debugging calls.
 
