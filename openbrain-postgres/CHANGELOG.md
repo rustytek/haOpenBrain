@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0
+
+**Update this add-on before (or together with) OpenBrain MCP Server 1.3.0**, which needs migration 003 and waits for it at startup.
+
+- **Migration 003** (applied automatically on start; additive, nothing is rewritten or removed):
+  - **Supersession**: `thoughts.superseded_by / superseded_at / superseded_note`. An outdated thought is kept and points at its replacement. Deleting the replacement makes the older thought current again.
+  - **Unified, filtered search**: new `brain_search()` ranks thoughts and wiki pages in one list (RRF of vector and keyword ranks) with filters for type, person, topic, source and date, and leaves superseded thoughts out unless asked. `hybrid_search()` is unchanged and still present.
+  - **Wiki pages** gain `embedding` / `embedding_model` (so pages are searchable) and `sources` (the thought ids a page was compiled from).
+  - **`thought_conflicts`**: review queue for "this newer thought may make that older one outdated" proposals.
+  - **`eval_cases` / `eval_runs`**: retrieval test set and its run history.
+  - **`updated_at` now changes only when content or metadata change.** Before, any update bumped it, so a background re-embed made every thought look new to the wiki consolidator and reset the stale-page clock.
+
 ## 1.1.1
 
 - **Migration failures no longer crash the container.** `run.sh` ran the migration step under `set -e` with no failure guard — if a migration errored for any reason, the whole script aborted *before* starting the real Postgres server, leaving the port closed with no explanation (the MCP add-on would just see "connection refused" forever). A migration failure is now logged loudly (the SQL error plus a clear `ERROR:` banner) but the database still starts, so it stays reachable for diagnosis instead of crash-looping silently.

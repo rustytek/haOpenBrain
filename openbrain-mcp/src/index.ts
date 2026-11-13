@@ -1,20 +1,24 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
-import { assertLiteLLMOnly, cfg, checkAccessKey, litellmHeaders, VERSION } from "./config.ts";
-import { waitForPostgres } from "./db.ts";
+import { assertLiteLLMOnly, cfg, checkAccessKey, litellmHeaders, REQUIRED_MIGRATION, VERSION } from "./config.ts";
+import { waitForMigration, waitForPostgres } from "./db.ts";
 import { registerTools } from "./tools.ts";
 import { mountRest } from "./rest.ts";
 import { startBackfillWorker } from "./backfill.ts";
 import { startTelegramBot } from "./telegram.ts";
 import { consolidate } from "./wiki.ts";
+import { findConflicts } from "./conflicts.ts";
 import { captureThought, getStats } from "./brain.ts";
 import { renderDashboard } from "./ui.ts";
 
 // ── MCP server ────────────────────────────────────────────────────────────────
 
 const server = new McpServer({ name: "openBrain", version: VERSION });
-registerTools(server);
+registerTools(server, "full");
+// /mcp?profile=lite: a short tool list for small local models (see tools.ts).
+const liteServer = new McpServer({ name: "openBrain-lite", version: VERSION });
+registerTools(liteServer, "lite");
 
 // ── HTTP layer ────────────────────────────────────────────────────────────────
 
@@ -53,7 +57,7 @@ app.all("/mcp", async (c) => {
   }
 
   const transport = new StreamableHTTPTransport();
-  await server.connect(transport);
+  await (c.req.query("profile") === "lite" ? liteServer : server).connect(transport);
   return transport.handleRequest(c);
 });
 
@@ -67,7 +71,15 @@ app.get("/stats.json", async (c) => {
 app.post("/jobs/consolidate", async (c) => {
   if (!(await authorized(c))) return c.text("Unauthorized", 401);
   const report = await consolidate("jobs-endpoint");
-  return c.json({ ok: true, report });
+  // Same nightly trigger also looks for facts the new thoughts make outdated.
+  // It only queues proposals for review; a failure here must not fail the job.
+  let conflicts: string;
+  try {
+    conflicts = await findConflicts("jobs-endpoint");
+  } catch (e) {
+    conflicts = `Outdated-fact scan failed: ${(e as Error).message}`;
+  }
+  return c.json({ ok: true, report, conflicts });
 });
 
 // Plain REST capture for Home Assistant automations / Assist (rest_command).
@@ -100,6 +112,7 @@ app.get("/", async (c) => {
 try {
   assertLiteLLMOnly();
   await waitForPostgres();
+  await waitForMigration(REQUIRED_MIGRATION);
 } catch (e) {
   // Exit cleanly instead of leaving an unresolved top-level await (which Deno
   // reports as an opaque "promise never resolved" with no useful context).

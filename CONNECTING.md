@@ -36,7 +36,9 @@ claude mcp add openbrain --transport http http://<ha-ip>:8000/mcp --header "x-br
 
 **Privacy rule (owner, 2026-11-12): the brain is for local models only.** A cloud model that can call these tools sends what it reads to its provider, so don't add this server to a normal Claude Code, Claude Desktop, Codex or ChatGPT setup. On the Mac Mini, use webTerminal's **Brain session** (`webterm local brain`): Claude Code running on a local LiteLLM alias with a proxy key that cannot reach a cloud model. See `../webTerminal/README.md`, "Local models and openBrain".
 
-Most other MCP-capable clients (ChatGPT connectors, Gemini CLI, Cursor, OpenWebUI's MCP support) take the same two facts: the URL and the `x-brain-key` header. Once connected, the model sees all tools: `capture_thought`, `search_thoughts`, `browse_recent`, `brain_stats`, `update_thought`, `delete_thought`, `get_index`, `read_page`, `write_page`, `delete_page`, `consolidate_brain`, `brain_audit`, `export_brain`.
+**Small local models** (the webTerminal Brain session does this): use `http://<ha-ip>:8000/mcp?profile=lite`. It offers seven tools instead of twenty-three, led by `recall`, which does the index → pages → search loop on the server and hands back one short, dated bundle.
+
+Most other MCP-capable clients (ChatGPT connectors, Gemini CLI, Cursor, OpenWebUI's MCP support) take the same two facts: the URL and the `x-brain-key` header. Once connected, the model sees all tools: `recall`, `capture_thought`, `search_thoughts`, `browse_recent`, `brain_stats`, `update_thought`, `delete_thought`, `get_index`, `read_page`, `write_page`, `delete_page`, `consolidate_brain`, `brain_audit`, `find_conflicts`, `review_conflicts`, `resolve_conflict`, `supersede_thought`, `restore_thought`, `add_eval_case`, `list_eval_cases`, `delete_eval_case`, `run_eval`, `export_brain`.
 
 ### Path B: Plain REST (any model, any framework, any script)
 
@@ -45,7 +47,10 @@ No MCP required — just HTTP + the key header. Full reference at `GET /openapi.
 | Capability | Call |
 |---|---|
 | Capture | `POST /api/thoughts` body `{"content": "...", "source": "my-tool"}` |
-| Search (RRF hybrid) | `GET /api/search?q=<query>&limit=10` |
+| Search (RRF hybrid, thoughts + wiki pages) | `GET /api/search?q=<query>&limit=10` plus optional `type`, `person`, `topic`, `source`, `since`, `until`, `include_superseded` |
+| Recall (one-call bundle) | `GET /api/recall?q=<question>` |
+| Outdated-fact proposals | `GET /api/conflicts`, `POST /api/conflicts/{id}` body `{"action": "accept"}` |
+| Retrieval test set | `POST /api/eval/cases`, `POST /api/eval/run` |
 | Recent | `GET /api/recent?limit=20&type=task` |
 | Delete thought | `DELETE /api/thoughts/{id}` |
 | Stats | `GET /api/stats` |

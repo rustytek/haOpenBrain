@@ -7,6 +7,8 @@ LITELLM_URL=$(jq -r     '.litellm_url'      /data/options.json)
 LITELLM_API_KEY=$(jq -r '.litellm_api_key // ""' /data/options.json)
 EMBED_MODEL=$(jq -r     '.embed_model'      /data/options.json)
 CHAT_MODEL=$(jq -r      '.chat_model'       /data/options.json)
+META_MODEL=$(jq -r      '.meta_model // ""' /data/options.json)
+EMBED_TASK_PREFIX=$(jq -r '.embed_task_prefix // "none"' /data/options.json)
 POSTGRES_PORT=$(jq -r   '.postgres_port // 5432' /data/options.json)
 POSTGRES_DB=$(jq -r     '.postgres_db'      /data/options.json)
 POSTGRES_USER=$(jq -r   '.postgres_user'    /data/options.json)
@@ -61,7 +63,7 @@ fi
 
 echo "INFO: Connecting to Postgres at ${POSTGRES_HOST}:${POSTGRES_PORT}"
 
-export MCP_ACCESS_KEY LITELLM_URL LITELLM_API_KEY EMBED_MODEL CHAT_MODEL POSTGRES_HOST POSTGRES_PORT \
+export MCP_ACCESS_KEY LITELLM_URL LITELLM_API_KEY EMBED_MODEL CHAT_MODEL META_MODEL EMBED_TASK_PREFIX POSTGRES_HOST POSTGRES_PORT \
        POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD TELEGRAM_BOT_TOKEN TELEGRAM_ALLOWED_USER_IDS
 
 # /share is mapped for export_brain markdown output

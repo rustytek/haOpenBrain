@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.3.0
+
+**Requires OpenBrain Database add-on 1.2.0** (migration 003). Update the database add-on first. If this add-on starts before the database is updated it logs `WARN: database schema is behind` and waits up to 5 minutes, then exits so the Supervisor restarts it.
+
+### Added
+
+- **Search covers wiki pages and takes filters.** `search_thoughts` (and `GET /api/search`) now returns thoughts and wiki pages in one ranked list, with optional `type`, `person`, `topic`, `source`, `since`, `until`. Person and topic match case-insensitively on part of the name. Each result has a `kind` (`thought` or `page`).
+- **`recall`**: one call that returns the relevant wiki pages and notes as a short, dated bundle. Made for small local models, which do much better with one simple tool than with a choice of twenty. No model runs on the server for this; it is retrieval and formatting.
+- **Lite tool profile**: `/mcp?profile=lite` exposes seven tools (`recall`, `capture_thought`, `read_page`, `write_page`, `review_conflicts`, `resolve_conflict`, `add_eval_case`). `/mcp` is unchanged apart from the new tools.
+- **Outdated facts (supersession).** A thought can be marked as replaced by a newer one: it stays on file but drops out of normal search (`include_superseded` brings it back; `restore_thought` undoes it). The nightly `POST /jobs/consolidate` now also runs a scan that **proposes** such pairs; nothing is hidden until you accept a proposal (`review_conflicts`, `resolve_conflict`). The scan is bounded to 12 new thoughts per run and, on its first run, starts 30 days back.
+- **Wiki provenance.** Pages record the thought ids they were compiled from. `read_page` shows how many are still current, and `brain_audit` lists pages built on thoughts that were later superseded or deleted. This is page-level, not per sentence.
+- **Retrieval test set.** `add_eval_case` saves a question with the thought or page that should come back; `run_eval` replays them all and reports hit@5, hit@10 and MRR against the previous run. Use it before and after any search change.
+- **`meta_model`** (optional): the model for per-capture metadata extraction. Defaults to `chat_model`. A non-reasoning alias such as `tooling_local_high` does this in a couple of seconds; the reasoning default took about a minute per note in testing and sometimes timed out (the thought is still saved, and metadata is filled in later).
+- **`embed_task_prefix`** (optional, `none` | `nomic`, default `none`): send `search_document:` / `search_query:` prefixes, as nomic-embed-text is documented to expect. Off by default: it made no measurable difference on a 40-note synthetic test, and turning it on re-embeds the whole brain. Measure with `run_eval` on real cases first.
+
+### Changed
+
+- `chat_model` / `meta_model` accept the `tooling_local_*` aliases as well as `knowledge_local_*`. Both families are local-only.
+- `consolidate_brain` skips superseded thoughts and tolerates replies wrapped in `<think>` tags or code fences.
+- `/stats.json` and `brain_stats` include `superseded` and `pending_conflicts`.
+- `export_brain` marks superseded thoughts.
+
+### Measured on the synthetic set (`dev/synthetic.json`, 40 invented notes, 16 questions, 2026-11-12)
+
+- Search: hit@5 94%, MRR 0.885; unchanged by the prefix option (0.883); MRR 0.915 after the seven genuine replacements were accepted.
+- Outdated-fact scan with `tooling_local_high` as judge: proposed all 7 genuine replacements and 4 wrong ones. That is why it only proposes. Not measured with `knowledge_local_high`.
+- 16 questions is a small sample: one question moves hit@5 by 6 points.
+
 ## 1.2.3
 
 ### Fixed

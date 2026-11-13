@@ -13,6 +13,8 @@ Install and start the **OpenBrain Database** add-on first.
 | `litellm_api_key` | Optional bearer token for LiteLLM. |
 | `embed_model` | Embedding model name in LiteLLM (default `embedding` — a stable tier alias that resolves to `nomic-embed-text` on Node A). Changing it re-embeds your whole brain in the background — see "Swapping embedding models". Must be a LiteLLM alias, not a direct model name — see "LiteLLM-only enforcement". |
 | `chat_model` | Chat model used for metadata extraction and wiki consolidation (default `knowledge_local_high` — a stable tier alias for the strongest clean local reasoning model on Node A). Must be a LiteLLM alias, not a direct model name — see "LiteLLM-only enforcement". |
+| `meta_model` | Optional. Model for per-capture metadata extraction (people, topics, type). Empty = same as `chat_model`. `tooling_local_high` (no reasoning) is much faster for this simple job. Local tier aliases only. |
+| `embed_task_prefix` | Optional, `none` (default) or `nomic`. `nomic` adds the `search_document:` / `search_query:` prefixes nomic-embed-text is documented to expect, and re-embeds the whole brain in the background. Run `run_eval` before and after to see whether it helps your data. |
 | `postgres_host` | Leave empty — auto-discovered via the Supervisor. Set only if the log tells you to (use the IP printed by the database add-on). |
 | `postgres_port` / `postgres_db` / `postgres_user` / `postgres_password` | Must match the database add-on options. |
 | `telegram_bot_token` | Optional. Bot token from @BotFather. Empty = Telegram disabled. |
@@ -72,7 +74,11 @@ Claude Desktop / Claude Code MCP config:
 }
 ```
 
-Tools: `capture_thought`, `search_thoughts`, `browse_recent`, `brain_stats`, `update_thought`, `delete_thought`, wiki tools (`get_index`, `read_page`, `write_page`, `delete_page`), `consolidate_brain`, `brain_audit`, `export_brain`.
+Tools: `recall`, `capture_thought`, `search_thoughts`, `browse_recent`, `brain_stats`, `update_thought`, `delete_thought`, wiki tools (`get_index`, `read_page`, `write_page`, `delete_page`), `consolidate_brain`, `brain_audit`, outdated-fact tools (`find_conflicts`, `review_conflicts`, `resolve_conflict`, `supersede_thought`, `restore_thought`), retrieval test tools (`add_eval_case`, `list_eval_cases`, `delete_eval_case`, `run_eval`), `export_brain`.
+
+**Small local models:** connect to `/mcp?profile=lite` instead. It offers seven tools (`recall`, `capture_thought`, `read_page`, `write_page`, `review_conflicts`, `resolve_conflict`, `add_eval_case`); a small model picks correctly from seven far more often than from twenty-three.
+
+**Privacy:** any model connected here reads your memories. Connect only models that run locally unless you intend a cloud provider to see them.
 
 ## Telegram capture bot setup
 
@@ -101,7 +107,11 @@ Everything the MCP tools can do is also plain HTTP under `/api/*` (same `x-brain
 | Endpoint | Purpose |
 |---|---|
 | `POST /api/thoughts` `{content, source?}` | Capture (chunked, offline-tolerant) |
-| `GET /api/search?q=...&limit=10` | RRF hybrid search |
+| `GET /api/search?q=...&limit=10` | Hybrid search over thoughts and wiki pages. Optional filters: `type`, `person`, `topic` (comma-separated), `source`, `since`, `until` (YYYY-MM-DD), `include_superseded=true`, `include_pages=false` |
+| `GET /api/recall?q=...` | One-call lookup: relevant pages and notes as a short text bundle (same filters) |
+| `POST /api/thoughts/{id}/supersede` `{by, note?}` · `POST /api/thoughts/{id}/restore` | Mark a thought outdated / undo |
+| `GET /api/conflicts` · `POST /api/conflicts/scan` · `POST /api/conflicts/{id}` `{action}` | Outdated-fact proposals: list, scan, accept or reject |
+| `GET/POST /api/eval/cases` · `DELETE /api/eval/cases/{id}` · `POST /api/eval/run?label=` | Retrieval test set |
 | `GET /api/recent?limit=20&type=task` | Chronological listing |
 | `DELETE /api/thoughts/{id}` | Delete a thought |
 | `GET /api/stats` | Stats (same payload as `/stats.json`) |
@@ -168,6 +178,22 @@ automation:
     actions:
       - action: rest_command.openbrain_consolidate
 ```
+
+The same nightly call also scans the newest thoughts for older ones they make outdated and queues proposals (see below). It adds a few minutes of local-model time; with Node A asleep it stops and resumes the next night.
+
+## Outdated facts
+
+Memory fills up with statements that were true once ("base station ordered", then "base station arrived"). Instead of deleting the old one, mark it **superseded**: it stays on file, points at its replacement, and no longer shows up in normal search.
+
+- The nightly scan compares each new thought with older, similar ones and asks the local model whether the new one replaces the old. It only **proposes**. On a synthetic test the fast local model proposed every genuine replacement and also 4 wrong ones out of 11, so a person decides.
+- Review with `review_conflicts`, then `resolve_conflict` (`accept` or `reject`) for each. In a chat: "show me the outdated-fact proposals".
+- By hand: `supersede_thought(older_id, newer_id)`; undo with `restore_thought`.
+- `search_thoughts` with `include_superseded` shows the history.
+- `brain_audit` lists wiki pages that were compiled from thoughts since superseded or deleted; the next consolidation of that page drops those sources.
+
+## Measuring search quality
+
+Save 30 to 50 questions you would really ask, each with the thought or page that should come back: `add_eval_case(question, expected)` (in a chat: "save that as a test case"). `run_eval` replays them and reports hit@5 (right answer in the top five), hit@10 and MRR, next to the previous run. Run it before and after changing `embed_task_prefix`, the embedding model, or anything else that affects search. With fewer than about 20 cases a single question moves the score by several points.
 
 ## Swapping embedding models
 

@@ -24,8 +24,9 @@ export const FALLBACK_META: ThoughtMetadata = {
   type: "observation",
 };
 
-// Batch embedding — one round trip for all chunks of a document.
-export async function getEmbeddings(texts: string[]): Promise<number[][]> {
+// Batch embedding — one round trip for all chunks of a document. Raw: callers
+// use embedDocs / embedQuery below so the task prefix is never forgotten.
+async function getEmbeddings(texts: string[]): Promise<number[][]> {
   const res = await fetch(`${cfg.litellmUrl}/embeddings`, {
     method: "POST",
     headers: litellmHeaders(),
@@ -40,8 +41,20 @@ export async function getEmbeddings(texts: string[]): Promise<number[][]> {
     .map((d) => d.embedding);
 }
 
-export async function getEmbedding(text: string): Promise<number[]> {
-  return (await getEmbeddings([text]))[0];
+// nomic-embed-text has a 2048-token window as served by Ollama; longer input is
+// cut off silently. Thought chunks are far below this; wiki pages may not be.
+const MAX_EMBED_CHARS = 6000;
+
+// Text being stored (thought chunks, wiki pages).
+export async function embedDocs(texts: string[]): Promise<number[][]> {
+  const p = cfg.embedTaskPrefix === "nomic" ? "search_document: " : "";
+  return await getEmbeddings(texts.map((t) => p + t.slice(0, MAX_EMBED_CHARS)));
+}
+
+// A search query.
+export async function embedQuery(text: string): Promise<number[]> {
+  const p = cfg.embedTaskPrefix === "nomic" ? "search_query: " : "";
+  return (await getEmbeddings([p + text.slice(0, MAX_EMBED_CHARS)]))[0];
 }
 
 // Returns null on any failure so callers can store the thought anyway and let
@@ -52,7 +65,7 @@ export async function extractMetadata(text: string): Promise<ThoughtMetadata | n
       method: "POST",
       headers: litellmHeaders(),
       body: JSON.stringify({
-        model: cfg.chatModel,
+        model: cfg.metaModel,
         response_format: { type: "json_object" },
         messages: [{
           role: "user",
@@ -66,7 +79,7 @@ export async function extractMetadata(text: string): Promise<ThoughtMetadata | n
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const parsed = JSON.parse(data.choices[0].message.content);
+    const parsed = parseJsonReply<Partial<ThoughtMetadata>>(data.choices[0].message.content);
     return { ...FALLBACK_META, ...parsed } as ThoughtMetadata;
   } catch {
     return null;
@@ -74,7 +87,7 @@ export async function extractMetadata(text: string): Promise<ThoughtMetadata | n
 }
 
 // General chat call used by the wiki consolidator.
-export async function chat(prompt: string, opts?: { json?: boolean }): Promise<string> {
+export async function chat(prompt: string, opts?: { json?: boolean; timeoutMs?: number }): Promise<string> {
   const res = await fetch(`${cfg.litellmUrl}/chat/completions`, {
     method: "POST",
     headers: litellmHeaders(),
@@ -83,9 +96,19 @@ export async function chat(prompt: string, opts?: { json?: boolean }): Promise<s
       ...(opts?.json ? { response_format: { type: "json_object" } } : {}),
       messages: [{ role: "user", content: prompt }],
     }),
-    signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
+    signal: AbortSignal.timeout(opts?.timeoutMs ?? CHAT_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Chat failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
   return data.choices[0].message.content as string;
+}
+
+// Reasoning models (deepseek-r1, qwen3 with thinking on) may wrap the answer in
+// <think>…</think> or a code fence even in JSON mode. Take the outermost object.
+export function parseJsonReply<T>(raw: string): T {
+  const s = raw.replace(/<think>[\s\S]*?<\/think>/g, "");
+  const a = s.indexOf("{");
+  const b = s.lastIndexOf("}");
+  if (a < 0 || b <= a) throw new Error("model reply contained no JSON object");
+  return JSON.parse(s.slice(a, b + 1)) as T;
 }

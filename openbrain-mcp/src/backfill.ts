@@ -5,10 +5,11 @@
 //   - re-extracts metadata for rows flagged pending_metadata
 // Runs forever; failures just mean it tries again next tick.
 
-import { cfg } from "./config.ts";
+import { EMBED_STAMP } from "./config.ts";
 import { logOp, withConn } from "./db.ts";
 import { vecLiteral } from "./brain.ts";
-import { extractMetadata, getEmbeddings } from "./llm.ts";
+import { embedDocs, extractMetadata } from "./llm.ts";
+import { pageEmbedText } from "./wiki.ts";
 
 const TICK_MS = 60_000;
 const BATCH = 16;
@@ -34,13 +35,16 @@ async function tick(): Promise<void> {
           OR COALESCE((metadata->>'pending_metadata')::boolean, false)
        ORDER BY created_at ASC
        LIMIT ${BATCH}`,
-      [cfg.embedModel],
+      [EMBED_STAMP],
     );
     return r.rows;
   });
-  if (rows.length === 0) return;
+  if (rows.length === 0) {
+    await backfillPages();
+    return;
+  }
 
-  const embeddings = await getEmbeddings(
+  const embeddings = await embedDocs(
     rows.map((r) => (r.embed_context ? `[${r.embed_context}]\n\n${r.content}` : r.content)),
   );
 
@@ -50,7 +54,7 @@ async function tick(): Promise<void> {
     const row = rows[i];
 
     let metaSql = "";
-    const params: unknown[] = [vecLiteral(embeddings[i]), cfg.embedModel, row.id];
+    const params: unknown[] = [vecLiteral(embeddings[i]), EMBED_STAMP, row.id];
     if (row.pending_metadata) {
       const meta = await extractMetadata(row.content);
       if (meta !== null) {
@@ -76,6 +80,32 @@ async function tick(): Promise<void> {
 
   console.log(`INFO: backfill embedded ${embedded} thought(s)${metaFixed ? `, re-extracted metadata for ${metaFixed}` : ""}`);
   await logOp("backfill", "worker", null, { embedded, metadata_fixed: metaFixed });
+}
+
+// Wiki pages written while Node A was offline, or embedded under an older
+// model/prefix stamp. Runs once the thoughts queue is empty.
+async function backfillPages(): Promise<void> {
+  const pages = await withConn(async (c) => {
+    const r = await c.queryObject<{ id: string; title: string; summary: string; content: string }>(
+      `SELECT id, title, summary, content FROM wiki_pages
+       WHERE embedding IS NULL OR embedding_model IS DISTINCT FROM $1
+       ORDER BY updated_at ASC LIMIT ${BATCH}`,
+      [EMBED_STAMP],
+    );
+    return r.rows;
+  });
+  if (pages.length === 0) return;
+  const embeddings = await embedDocs(pages.map(pageEmbedText));
+  for (let i = 0; i < pages.length; i++) {
+    await withConn((c) =>
+      c.queryObject(
+        `UPDATE wiki_pages SET embedding = $1::vector(768), embedding_model = $2 WHERE id = $3`,
+        [vecLiteral(embeddings[i]), EMBED_STAMP, pages[i].id],
+      )
+    );
+  }
+  console.log(`INFO: backfill embedded ${pages.length} wiki page(s)`);
+  await logOp("backfill", "worker", null, { pages_embedded: pages.length });
 }
 
 export function startBackfillWorker(): void {
